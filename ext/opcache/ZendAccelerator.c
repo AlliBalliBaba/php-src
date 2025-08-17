@@ -2707,9 +2707,13 @@ ZEND_RINIT_FUNCTION(zend_accelerator)
 	if (ZCSG(restart_pending)) {
 		zend_shared_alloc_lock();
 		if (ZCSG(restart_pending)) { /* check again, to ensure that the cache wasn't already cleaned by another process */
+#ifdef ZTS
+			bool expected = true;
+			if (accel_is_inactive() && zend_atomic_bool_compare_exchange(&ZCG(restart_pending), &expected, false)) {
+#else
 			if (accel_is_inactive()) {
+#endif
 				zend_accel_error(ACCEL_LOG_DEBUG, "Restarting!");
-				ZCSG(restart_pending) = false;
 				zend_atomic_bool_store(&ZCG(restart_pending), false);
 				switch ZCSG(restart_reason) {
 					case ACCEL_RESTART_OOM:
