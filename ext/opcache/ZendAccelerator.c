@@ -2710,6 +2710,7 @@ ZEND_RINIT_FUNCTION(zend_accelerator)
 			if (accel_is_inactive()) {
 				zend_accel_error(ACCEL_LOG_DEBUG, "Restarting!");
 				ZCSG(restart_pending) = false;
+				zend_atomic_bool_store(&ZCG(restart_pending), false);
 				switch ZCSG(restart_reason) {
 					case ACCEL_RESTART_OOM:
 						ZCSG(oom_restarts)++;
