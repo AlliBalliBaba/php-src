@@ -2004,7 +2004,7 @@ zend_persistent_script *zend_file_cache_script_load_ex(zend_file_handle *file_ha
 
 	if (!file_cache_only &&
 	    !ZCSG(restart_in_progress) &&
-	    !ZCSG(restart_pending) &&
+	    !zend_atomic_bool_load(&ZCSG(restart_pending)) &&
 		!ZSMMG(memory_exhausted) &&
 	    accelerator_shm_read_lock() == SUCCESS) {
 		/* exclusive lock */
@@ -2091,7 +2091,7 @@ void zend_file_cache_invalidate(zend_string *full_path)
 	if (ZCG(accel_directives).file_cache_read_only) {
 		return;
 	}
-	
+
 	char *filename;
 
 	filename = zend_file_cache_get_bin_file_path(full_path);

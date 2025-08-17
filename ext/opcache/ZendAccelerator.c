@@ -2154,7 +2154,7 @@ zend_op_array *persistent_compile_file(zend_file_handle *file_handle, int type)
 		ZCSG(misses)++;
 
 		/* No memory left. Behave like without the Accelerator */
-		if (ZSMMG(memory_exhausted) || ZCSG(restart_pending)) {
+		if (ZSMMG(memory_exhausted) || zend_atomic_bool_load(&ZCSG(restart_pending))) {
 			SHM_PROTECT();
 			HANDLE_UNBLOCK_INTERRUPTIONS();
 			if (ZCG(accel_directives).file_cache) {
@@ -2624,7 +2624,7 @@ static void zend_reset_cache_vars(void)
 	ZCSG(misses) = 0;
 	ZCSG(blacklist_misses) = 0;
 	ZSMMG(wasted_shared_memory) = 0;
-	ZCSG(restart_pending) = false;
+	zend_atomic_bool_store(&ZCSG(restart_pending), false);
 	ZCSG(force_restart_time) = 0;
 	ZCSG(map_ptr_last) = CG(map_ptr_last);
 	ZCSG(map_ptr_static_last) = zend_map_ptr_static_last;
@@ -2703,52 +2703,50 @@ ZEND_RINIT_FUNCTION(zend_accelerator)
 		ZCG(counted) = false;
 	}
 
-	if (ZCSG(restart_pending)) {
+	bool expected = true;
+	if (zend_atomic_bool_compare_exchange(&ZCSG(restart_pending), &expected, false)) {
 		zend_shared_alloc_lock();
-		if (ZCSG(restart_pending)) { /* check again, to ensure that the cache wasn't already cleaned by another process */
-			if (accel_is_inactive()) {
-				zend_accel_error(ACCEL_LOG_DEBUG, "Restarting!");
-				ZCSG(restart_pending) = false;
-				switch ZCSG(restart_reason) {
-					case ACCEL_RESTART_OOM:
-						ZCSG(oom_restarts)++;
-						break;
-					case ACCEL_RESTART_HASH:
-						ZCSG(hash_restarts)++;
-						break;
-					case ACCEL_RESTART_USER:
-						ZCSG(manual_restarts)++;
-						break;
-				}
-				accel_restart_enter();
+		if (accel_is_inactive()) {
+			zend_accel_error(ACCEL_LOG_DEBUG, "Restarting!");
+			switch ZCSG(restart_reason) {
+				case ACCEL_RESTART_OOM:
+					ZCSG(oom_restarts)++;
+					break;
+				case ACCEL_RESTART_HASH:
+					ZCSG(hash_restarts)++;
+					break;
+				case ACCEL_RESTART_USER:
+					ZCSG(manual_restarts)++;
+					break;
+			}
+			accel_restart_enter();
 
-				zend_map_ptr_reset();
-				zend_reset_cache_vars();
-				zend_accel_hash_clean(&ZCSG(hash));
+			zend_map_ptr_reset();
+			zend_reset_cache_vars();
+			zend_accel_hash_clean(&ZCSG(hash));
 
-				if (ZCG(accel_directives).interned_strings_buffer) {
-					accel_interned_strings_restore_state();
-				}
+			if (ZCG(accel_directives).interned_strings_buffer) {
+				accel_interned_strings_restore_state();
+			}
 
-				zend_shared_alloc_restore_state();
+			zend_shared_alloc_restore_state();
 #ifdef PRELOAD_SUPPORT
-				if (ZCSG(preload_script)) {
-					preload_restart();
-				}
+			if (ZCSG(preload_script)) {
+				preload_restart();
+			}
 #endif
 
 #ifdef HAVE_JIT
-				zend_jit_restart();
+			zend_jit_restart();
 #endif
 
-				ZCSG(accelerator_enabled) = ZCSG(cache_status_before_restart);
-				if (ZCSG(last_restart_time) < ZCG(request_time)) {
-					ZCSG(last_restart_time) = ZCG(request_time);
-				} else {
-					ZCSG(last_restart_time)++;
-				}
-				accel_restart_leave();
+			ZCSG(accelerator_enabled) = ZCSG(cache_status_before_restart);
+			if (ZCSG(last_restart_time) < ZCG(request_time)) {
+				ZCSG(last_restart_time) = ZCG(request_time);
+			} else {
+				ZCSG(last_restart_time)++;
 			}
+			accel_restart_leave();
 		}
 		zend_shared_alloc_unlock();
 	}
@@ -3494,10 +3492,14 @@ void zend_accel_schedule_restart(zend_accel_restart_reason reason)
 		"user",
 	};
 
-	if (ZCSG(restart_pending)) {
+	bool expected = false;
+	SHM_UNPROTECT();
+	if (!zend_atomic_bool_compare_exchange(&ZCSG(restart_pending), &expected, true)) {
 		/* don't schedule twice */
+		SHM_PROTECT();
 		return;
 	}
+	SHM_PROTECT();
 
 	if (UNEXPECTED(zend_accel_schedule_restart_hook)) {
 		zend_accel_schedule_restart_hook(reason);
@@ -3508,7 +3510,6 @@ void zend_accel_schedule_restart(zend_accel_restart_reason reason)
 
 	HANDLE_BLOCK_INTERRUPTIONS();
 	SHM_UNPROTECT();
-	ZCSG(restart_pending) = true;
 	ZCSG(restart_reason) = reason;
 	ZCSG(cache_status_before_restart) = ZCSG(accelerator_enabled);
 	ZCSG(accelerator_enabled) = false;
