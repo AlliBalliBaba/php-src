@@ -221,7 +221,6 @@ typedef struct _zend_accel_globals {
 	void                   *preloaded_internal_run_time_cache;
 	size_t                  preloaded_internal_run_time_cache_size;
 	bool                    preloading;
-	zend_atomic_bool        restart_pending;
 	/* preallocated shared-memory block to save current script */
 	void                   *mem;
 	zend_persistent_script *current_persistent_script;
