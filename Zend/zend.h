@@ -378,6 +378,7 @@ extern ZEND_API zend_result (*zend_post_startup_cb)(void);
 extern ZEND_API void (*zend_post_shutdown_cb)(void);
 
 extern ZEND_API void (*zend_accel_schedule_restart_hook)(int reason);
+extern ZEND_API bool (*zend_accel_allow_restart_hook)(void);
 
 ZEND_API ZEND_COLD void zend_error(int type, const char *format, ...) ZEND_ATTRIBUTE_FORMAT(printf, 2, 3);
 ZEND_API ZEND_COLD ZEND_NORETURN void zend_error_noreturn(int type, const char *format, ...) ZEND_ATTRIBUTE_FORMAT(printf, 2, 3);

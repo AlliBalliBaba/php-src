@@ -3494,16 +3494,21 @@ void zend_accel_schedule_restart(zend_accel_restart_reason reason)
 		"user",
 	};
 
-	zend_shared_alloc_lock();
 	if (ZCSG(restart_pending)) {
 		/* don't schedule twice */
-		zend_shared_alloc_unlock();
 		return;
 	}
 
 	if (UNEXPECTED(zend_accel_schedule_restart_hook)) {
 		zend_accel_schedule_restart_hook(reason);
 	}
+
+	if (UNEXPECTED(zend_accel_allow_restart_hook)) {
+        if (!zend_accel_allow_restart_hook()){
+        	/* If the hook returns false, we do not schedule a restart */
+			return;
+        }
+    }
 
 	zend_accel_error(ACCEL_LOG_DEBUG, "Restart Scheduled! Reason: %s",
 			zend_accel_restart_reason_text[reason]);
@@ -3522,7 +3527,6 @@ void zend_accel_schedule_restart(zend_accel_restart_reason reason)
 	}
 	SHM_PROTECT();
 	HANDLE_UNBLOCK_INTERRUPTIONS();
-	zend_shared_alloc_unlock();
 }
 
 static void accel_deactivate_now(void)
