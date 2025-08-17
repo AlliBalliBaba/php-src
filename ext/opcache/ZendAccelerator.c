@@ -2657,7 +2657,7 @@ ZEND_RINIT_FUNCTION(zend_accelerator)
 	ZCG(cache_persistent_script) = NULL;
 	ZCG(include_path_key_len) = 0;
 	ZCG(include_path_check) = true;
-	zend_atomic_bool_init(&ZCG(restart_pending), false)
+	zend_atomic_bool_init(&ZCG(restart_pending), false);
 
 	ZCG(cwd) = NULL;
 	ZCG(cwd_key_len) = 0;
