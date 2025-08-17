@@ -2707,12 +2707,7 @@ ZEND_RINIT_FUNCTION(zend_accelerator)
 	if (ZCSG(restart_pending)) {
 		zend_shared_alloc_lock();
 		if (ZCSG(restart_pending)) { /* check again, to ensure that the cache wasn't already cleaned by another process */
-#ifdef ZTS
-			bool expected = true;
-			if (accel_is_inactive() && zend_atomic_bool_compare_exchange(&ZCG(restart_pending), &expected, false)) {
-#else
 			if (accel_is_inactive()) {
-#endif
 				zend_accel_error(ACCEL_LOG_DEBUG, "Restarting!");
 				switch ZCSG(restart_reason) {
 					case ACCEL_RESTART_OOM:
@@ -3499,18 +3494,12 @@ void zend_accel_schedule_restart(zend_accel_restart_reason reason)
 		"user",
 	};
 
-#ifdef ZTS
-	bool expected = false;
-	if (ZCSG(restart_pending) || !zend_atomic_bool_compare_exchange(&ZCG(restart_pending), &expected, true)) {
-		/* don't schedule twice */
-		return;
-	}
-#else
+	zend_shared_alloc_lock();
 	if (ZCSG(restart_pending)) {
 		/* don't schedule twice */
+		zend_shared_alloc_unlock();
 		return;
 	}
-#endif
 
 	if (UNEXPECTED(zend_accel_schedule_restart_hook)) {
 		zend_accel_schedule_restart_hook(reason);
@@ -3533,6 +3522,7 @@ void zend_accel_schedule_restart(zend_accel_restart_reason reason)
 	}
 	SHM_PROTECT();
 	HANDLE_UNBLOCK_INTERRUPTIONS();
+	zend_shared_alloc_unlock();
 }
 
 static void accel_deactivate_now(void)
