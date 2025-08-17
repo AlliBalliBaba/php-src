@@ -2657,7 +2657,6 @@ ZEND_RINIT_FUNCTION(zend_accelerator)
 	ZCG(cache_persistent_script) = NULL;
 	ZCG(include_path_key_len) = 0;
 	ZCG(include_path_check) = true;
-	zend_atomic_bool_init(&ZCG(restart_pending), false);
 
 	ZCG(cwd) = NULL;
 	ZCG(cwd_key_len) = 0;
@@ -2709,6 +2708,7 @@ ZEND_RINIT_FUNCTION(zend_accelerator)
 		if (ZCSG(restart_pending)) { /* check again, to ensure that the cache wasn't already cleaned by another process */
 			if (accel_is_inactive()) {
 				zend_accel_error(ACCEL_LOG_DEBUG, "Restarting!");
+				ZCSG(restart_pending) = false;
 				switch ZCSG(restart_reason) {
 					case ACCEL_RESTART_OOM:
 						ZCSG(oom_restarts)++;
