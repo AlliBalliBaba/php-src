@@ -2703,9 +2703,8 @@ ZEND_RINIT_FUNCTION(zend_accelerator)
 		ZCG(counted) = false;
 	}
 
-	bool expected = true;
-
 #ifdef ZTS
+	bool expected = true;
 	if (ZCSG(restart_pending) && zend_atomic_bool_compare_exchange(&ZCG(restart_pending), &expected, false)) {
 #else
 	if (ZCSG(restart_pending)) {
