@@ -2704,12 +2704,7 @@ ZEND_RINIT_FUNCTION(zend_accelerator)
 		ZCG(counted) = false;
 	}
 
-#ifdef ZTS
-	bool expected = true;
-	if (ZCSG(restart_pending) && zend_atomic_bool_compare_exchange(&ZCG(restart_pending), &expected, false)) {
-#else
 	if (ZCSG(restart_pending)) {
-#endif
 		zend_shared_alloc_lock();
 		if (ZCSG(restart_pending)) { /* check again, to ensure that the cache wasn't already cleaned by another process */
 			if (accel_is_inactive()) {
