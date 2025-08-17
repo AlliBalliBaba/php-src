@@ -3513,8 +3513,16 @@ void zend_accel_schedule_restart(zend_accel_restart_reason reason)
 	zend_accel_error(ACCEL_LOG_DEBUG, "Restart Scheduled! Reason: %s",
 			zend_accel_restart_reason_text[reason]);
 
+	zend_shared_alloc_lock();
 	HANDLE_BLOCK_INTERRUPTIONS();
 	SHM_UNPROTECT();
+	if (ZCSG(restart_in_progress) || ZCSG(restart_pending)) {
+        /* verify again that no restart was scheduled or is in progress */
+        SHM_PROTECT();
+        HANDLE_UNBLOCK_INTERRUPTIONS();
+        zend_shared_alloc_unlock();
+        return;
+    }
 	ZCSG(restart_pending) = true;
 	ZCSG(restart_reason) = reason;
 	ZCSG(cache_status_before_restart) = ZCSG(accelerator_enabled);
@@ -3527,6 +3535,7 @@ void zend_accel_schedule_restart(zend_accel_restart_reason reason)
 	}
 	SHM_PROTECT();
 	HANDLE_UNBLOCK_INTERRUPTIONS();
+	zend_shared_alloc_unlock();
 }
 
 static void accel_deactivate_now(void)
