@@ -3528,7 +3528,6 @@ void zend_accel_schedule_restart(zend_accel_restart_reason reason)
 	}
 	SHM_PROTECT();
 	HANDLE_UNBLOCK_INTERRUPTIONS();
-	zend_shared_alloc_unlock();
 }
 
 static void accel_deactivate_now(void)
