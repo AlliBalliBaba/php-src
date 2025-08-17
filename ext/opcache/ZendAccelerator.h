@@ -48,7 +48,6 @@
 # include <unistd.h>
 #endif
 
-#include "zend_atomic.h"
 #include "zend_extensions.h"
 #include "zend_compile.h"
 #include "zend_API.h"
@@ -222,6 +221,7 @@ typedef struct _zend_accel_globals {
 	void                   *preloaded_internal_run_time_cache;
 	size_t                  preloaded_internal_run_time_cache_size;
 	bool                    preloading;
+	zend_atomic_bool        restart_pending;
 	/* preallocated shared-memory block to save current script */
 	void                   *mem;
 	zend_persistent_script *current_persistent_script;
@@ -264,7 +264,7 @@ typedef struct _zend_accel_shared_globals {
 	time_t          last_restart_time;
 	time_t          force_restart_time;
 	bool       accelerator_enabled;
-	zend_atomic_bool restart_pending;
+	bool       restart_pending;
 	zend_accel_restart_reason restart_reason;
 	bool       cache_status_before_restart;
 #ifdef ZEND_WIN32

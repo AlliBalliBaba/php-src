@@ -685,7 +685,7 @@ ZEND_FUNCTION(opcache_get_status)
 	}
 
 	add_assoc_bool(return_value, "cache_full", ZSMMG(memory_exhausted));
-	add_assoc_bool(return_value, "restart_pending", zend_atomic_bool_load(&ZCSG(restart_pending)));
+	add_assoc_bool(return_value, "restart_pending", ZCSG(restart_pending));
 	add_assoc_bool(return_value, "restart_in_progress", ZCSG(restart_in_progress));
 
 	/* Memory usage statistics */
