@@ -3502,7 +3502,7 @@ void zend_accel_schedule_restart(zend_accel_restart_reason reason)
 
 #ifdef ZTS
 	bool expected = false;
-	if (ZCSG(restart_pending) && zend_atomic_bool_compare_exchange(&ZCG(restart_pending), &expected, true)) {
+	if (ZCSG(restart_pending) || !zend_atomic_bool_compare_exchange(&ZCG(restart_pending), &expected, true)) {
 		/* don't schedule twice */
 		return;
 	}
