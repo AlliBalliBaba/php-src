@@ -2703,7 +2703,6 @@ ZEND_RINIT_FUNCTION(zend_accelerator)
 		ZCG(counted) = false;
 	}
 
-    zend_accel_error(ACCEL_LOG_DEBUG, "checking for pending restart");
 	if (ZCSG(restart_pending)) {
 	    zend_accel_error(ACCEL_LOG_DEBUG, "restart pending, initiating");
 		zend_shared_alloc_lock();
@@ -2760,22 +2759,28 @@ ZEND_RINIT_FUNCTION(zend_accelerator)
 	}
 
 	ZCG(accelerator_enabled) = ZCSG(accelerator_enabled);
+	zend_accel_error(ACCEL_LOG_DEBUG, "accelleator re-enabled left");
 
 	SHM_PROTECT();
 	HANDLE_UNBLOCK_INTERRUPTIONS();
 
 	if (ZCG(accelerator_enabled) && ZCSG(last_restart_time) != ZCG(last_restart_time)) {
+	    zend_accel_error(ACCEL_LOG_DEBUG, "diverting restart times!");
 		/* SHM was reinitialized. */
 		ZCG(last_restart_time) = ZCSG(last_restart_time);
 
 		/* Reset in-process realpath cache */
 		realpath_cache_clean();
+		zend_accel_error(ACCEL_LOG_DEBUG, "realpath cache cleaned");
 
 		accel_reset_pcre_cache();
+		zend_accel_error(ACCEL_LOG_DEBUG, "accel_reset_pcre_cache cleaned");
 		ZCG(pcre_reseted) = false;
+		zend_accel_error(ACCEL_LOG_DEBUG, "some more resetting done");
 	} else if (!ZCG(accelerator_enabled) && !ZCG(pcre_reseted)) {
 		accel_reset_pcre_cache();
 		ZCG(pcre_reseted) = true;
+		zend_accel_error(ACCEL_LOG_DEBUG, "how did we land here?");
 	}
 
 
