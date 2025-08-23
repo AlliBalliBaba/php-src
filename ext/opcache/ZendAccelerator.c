@@ -3511,8 +3511,8 @@ void zend_accel_schedule_restart(zend_accel_restart_reason reason)
 		return;
 	}
 
-	if (UNEXPECTED(zend_accel_schedule_restart_hook)) {
-		zend_accel_schedule_restart_hook(reason);
+	if (UNEXPECTED(zend_accel_schedule_restart_hook) && !zend_accel_schedule_restart_hook(reason)) {
+		return;
 	}
 
 	zend_accel_error(ACCEL_LOG_DEBUG, "Restart Scheduled! Reason: %s",
