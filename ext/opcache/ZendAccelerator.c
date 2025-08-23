@@ -2703,9 +2703,12 @@ ZEND_RINIT_FUNCTION(zend_accelerator)
 		ZCG(counted) = false;
 	}
 
+    zend_accel_error(ACCEL_LOG_DEBUG, "checking for pending restart");
 	if (ZCSG(restart_pending)) {
+	    zend_accel_error(ACCEL_LOG_DEBUG, "restart pending, initiating");
 		zend_shared_alloc_lock();
 		if (ZCSG(restart_pending)) { /* check again, to ensure that the cache wasn't already cleaned by another process */
+			zend_accel_error(ACCEL_LOG_DEBUG, "restart is actually definitely pending");
 			if (accel_is_inactive()) {
 				zend_accel_error(ACCEL_LOG_DEBUG, "Restarting!");
 				ZCSG(restart_pending) = false;
@@ -2721,6 +2724,7 @@ ZEND_RINIT_FUNCTION(zend_accelerator)
 						break;
 				}
 				accel_restart_enter();
+				zend_accel_error(ACCEL_LOG_DEBUG, "entered restart");
 
 				zend_map_ptr_reset();
 				zend_reset_cache_vars();
@@ -2747,7 +2751,9 @@ ZEND_RINIT_FUNCTION(zend_accelerator)
 				} else {
 					ZCSG(last_restart_time)++;
 				}
+				zend_accel_error(ACCEL_LOG_DEBUG, "about to restart leave");
 				accel_restart_leave();
+				zend_accel_error(ACCEL_LOG_DEBUG, "restart left");
 			}
 		}
 		zend_shared_alloc_unlock();
@@ -3496,6 +3502,7 @@ void zend_accel_schedule_restart(zend_accel_restart_reason reason)
 
 	if (ZCSG(restart_pending)) {
 		/* don't schedule twice */
+		zend_accel_error(ACCEL_LOG_DEBUG, "dont schedule twice!");
 		return;
 	}
 
@@ -3510,6 +3517,7 @@ void zend_accel_schedule_restart(zend_accel_restart_reason reason)
 	SHM_UNPROTECT();
 	bool restart_pending = ZCSG(restart_pending);
 	ZCSG(restart_pending) = true;
+	zend_accel_error(ACCEL_LOG_DEBUG, "restart pending:true");
 	if (ZCSG(restart_in_progress) || restart_pending) {
         /* verify again that no restart was scheduled or is in progress */
         SHM_PROTECT();
